@@ -150,60 +150,6 @@ func TestJobStrategy_PrepareForUpdate(t *testing.T) {
 				},
 			},
 		},
-		"update job with a new field: not update when JobSuccessPolicy disabled": {
-			enableJobSuccessPolicy: false,
-			job: batch.Job{
-				ObjectMeta: getValidObjectMeta(0),
-				Spec: batch.JobSpec{
-					Selector:      validSelector,
-					Template:      validPodTemplateSpec,
-					SuccessPolicy: nil,
-				},
-			},
-			updatedJob: batch.Job{
-				ObjectMeta: getValidObjectMeta(0),
-				Spec: batch.JobSpec{
-					Selector:      validSelector,
-					Template:      validPodTemplateSpec,
-					SuccessPolicy: updatedSuccessPolicy,
-				},
-			},
-			wantJob: batch.Job{
-				ObjectMeta: getValidObjectMeta(0),
-				Spec: batch.JobSpec{
-					Selector:      validSelector,
-					Template:      validPodTemplateSpec,
-					SuccessPolicy: nil,
-				},
-			},
-		},
-		"update pre-existing field; updated when JobSuccessPolicy disabled": {
-			enableJobSuccessPolicy: false,
-			job: batch.Job{
-				ObjectMeta: getValidObjectMeta(0),
-				Spec: batch.JobSpec{
-					Selector:      validSelector,
-					Template:      validPodTemplateSpec,
-					SuccessPolicy: successPolicy,
-				},
-			},
-			updatedJob: batch.Job{
-				ObjectMeta: getValidObjectMeta(0),
-				Spec: batch.JobSpec{
-					Selector:      validSelector,
-					Template:      validPodTemplateSpec,
-					SuccessPolicy: updatedSuccessPolicy,
-				},
-			},
-			wantJob: batch.Job{
-				ObjectMeta: getValidObjectMeta(1),
-				Spec: batch.JobSpec{
-					Selector:      validSelector,
-					Template:      validPodTemplateSpec,
-					SuccessPolicy: updatedSuccessPolicy,
-				},
-			},
-		},
 		"update job with a new field; updated when JobBackoffLimitPerIndex enabled": {
 			enableJobBackoffLimitPerIndex: true,
 			job: batch.Job{
@@ -608,27 +554,6 @@ func TestJobStrategy_PrepareForCreate(t *testing.T) {
 					ManualSelector: ptr.To(false),
 					Template:       expectedPodTemplateSpec,
 					SuccessPolicy:  successPolicy,
-				},
-			},
-		},
-		"create job with a new field; JobSuccessPolicy disabled": {
-			enableJobSuccessPolicy: false,
-			job: batch.Job{
-				ObjectMeta: getValidObjectMeta(0),
-				Spec: batch.JobSpec{
-					Selector:       validSelector,
-					ManualSelector: ptr.To(false),
-					Template:       validPodTemplateSpec,
-					SuccessPolicy:  successPolicy,
-				},
-			},
-			wantJob: batch.Job{
-				ObjectMeta: getValidObjectMeta(1),
-				Spec: batch.JobSpec{
-					Selector:       validSelector,
-					ManualSelector: ptr.To(false),
-					Template:       validPodTemplateSpec,
-					SuccessPolicy:  nil,
 				},
 			},
 		},

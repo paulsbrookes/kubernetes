@@ -1248,7 +1248,6 @@ func TestControllerSyncJob(t *testing.T) {
 			}
 			featuregatetesting.SetFeatureGatesDuringTest(t, feature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
 				features.JobPodReplacementPolicy: tc.jobPodReplacementPolicy,
-				features.JobSuccessPolicy:        tc.jobSuccessPolicy,
 				features.JobManagedBy:            tc.jobManagedBy,
 			})
 			// job manager setup
@@ -2428,13 +2427,12 @@ func TestTrackJobStatusAndRemoveFinalizers(t *testing.T) {
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			if !tc.enableJobBackoffLimitPerIndex || !tc.enableJobSuccessPolicy {
+			if !tc.enableJobBackoffLimitPerIndex {
 				// TODO: this will be removed in 1.36
 				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.32"))
 			}
 			featuregatetesting.SetFeatureGatesDuringTest(t, feature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
 				features.JobBackoffLimitPerIndex: tc.enableJobBackoffLimitPerIndex,
-				features.JobSuccessPolicy:        tc.enableJobSuccessPolicy,
 				features.JobPodReplacementPolicy: tc.enableJobPodReplacementPolicy,
 				features.JobManagedBy:            tc.enableJobManagedBy,
 			})
@@ -5181,13 +5179,12 @@ func TestSyncJobWithJobSuccessPolicy(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			if !tc.enableBackoffLimitPerIndex || !tc.enableJobSuccessPolicy {
+			if !tc.enableBackoffLimitPerIndex {
 				// TODO: this will be removed in 1.36
 				featuregatetesting.SetFeatureGateEmulationVersionDuringTest(t, feature.DefaultFeatureGate, utilversion.MustParse("1.32"))
 			}
 			featuregatetesting.SetFeatureGatesDuringTest(t, feature.DefaultFeatureGate, featuregatetesting.FeatureOverrides{
 				features.JobBackoffLimitPerIndex: tc.enableBackoffLimitPerIndex,
-				features.JobSuccessPolicy:        tc.enableJobSuccessPolicy,
 				features.JobPodReplacementPolicy: tc.enableJobPodReplacementPolicy,
 				features.JobManagedBy:            tc.enableJobManagedBy,
 			})

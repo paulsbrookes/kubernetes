@@ -101,9 +101,6 @@ func (jobStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	if !utilfeature.DefaultFeatureGate.Enabled(features.JobManagedBy) {
 		job.Spec.ManagedBy = nil
 	}
-	if !utilfeature.DefaultFeatureGate.Enabled(features.JobSuccessPolicy) {
-		job.Spec.SuccessPolicy = nil
-	}
 
 	if !utilfeature.DefaultFeatureGate.Enabled(features.JobBackoffLimitPerIndex) {
 		job.Spec.BackoffLimitPerIndex = nil
@@ -133,10 +130,6 @@ func (jobStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object
 	newJob := obj.(*batch.Job)
 	oldJob := old.(*batch.Job)
 	newJob.Status = oldJob.Status
-
-	if !utilfeature.DefaultFeatureGate.Enabled(features.JobSuccessPolicy) && oldJob.Spec.SuccessPolicy == nil {
-		newJob.Spec.SuccessPolicy = nil
-	}
 
 	if !utilfeature.DefaultFeatureGate.Enabled(features.JobBackoffLimitPerIndex) {
 		if oldJob.Spec.BackoffLimitPerIndex == nil {
