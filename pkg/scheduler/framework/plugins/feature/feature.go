@@ -65,7 +65,7 @@ func NewSchedulerFeaturesFromGates(featureGate featuregate.FeatureGate) Features
 		EnableMatchLabelKeysInPodTopologySpread:      featureGate.Enabled(features.MatchLabelKeysInPodTopologySpread),
 		EnableInPlacePodVerticalScaling:              featureGate.Enabled(features.InPlacePodVerticalScaling),
 		EnableSidecarContainers:                      featureGate.Enabled(features.SidecarContainers),
-		EnableSchedulingQueueHint:                    featureGate.Enabled(features.SchedulerQueueingHints),
+		EnableSchedulingQueueHint:                    true,
 		EnableAsyncPreemption:                        featureGate.Enabled(features.SchedulerAsyncPreemption),
 		EnablePodLevelResources:                      featureGate.Enabled(features.PodLevelResources),
 		EnableDRAPartitionableDevices:                featureGate.Enabled(features.DRAPartitionableDevices),

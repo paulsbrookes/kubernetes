@@ -23,7 +23,6 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -39,7 +38,6 @@ import (
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler/backend/queue"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
-	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/helper"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/nodeaffinity"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/nodename"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/nodeports"
@@ -379,14 +377,7 @@ func (sched *Scheduler) addAssignedPodToCache(pod *v1.Pod) {
 	// Consequently, if custom plugins that subscribes Pod/Add events reject Pods,
 	// those Pods will never be requeued to activeQ by an assigned Pod related events,
 	// and they may be stuck in unschedulableQ.
-	//
-	// Here we use MoveAllToActiveOrBackoffQueue only when QueueingHint is enabled.
-	// (We cannot switch to MoveAllToActiveOrBackoffQueue right away because of throughput concern.)
-	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerQueueingHints) {
-		sched.SchedulingQueue.MoveAllToActiveOrBackoffQueue(logger, framework.EventAssignedPodAdd, nil, pod, nil)
-	} else {
-		sched.SchedulingQueue.AssignedPodAdded(logger, pod)
-	}
+	sched.SchedulingQueue.MoveAllToActiveOrBackoffQueue(logger, framework.EventAssignedPodAdd, nil, pod, nil)
 }
 
 func (sched *Scheduler) updateAssignedPodInCache(oldPod, newPod *v1.Pod) {
@@ -419,14 +410,7 @@ func (sched *Scheduler) updateAssignedPodInCache(oldPod, newPod *v1.Pod) {
 		// Consequently, if custom plugins that subscribes Pod/Update events reject Pods,
 		// those Pods will never be requeued to activeQ by an assigned Pod related events,
 		// and they may be stuck in unschedulableQ.
-		//
-		// Here we use MoveAllToActiveOrBackoffQueue only when QueueingHint is enabled.
-		// (We cannot switch to MoveAllToActiveOrBackoffQueue right away because of throughput concern.)
-		if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerQueueingHints) {
-			sched.SchedulingQueue.MoveAllToActiveOrBackoffQueue(logger, evt, oldPod, newPod, nil)
-		} else {
-			sched.SchedulingQueue.AssignedPodUpdated(logger, oldPod, newPod, evt)
-		}
+		sched.SchedulingQueue.MoveAllToActiveOrBackoffQueue(logger, evt, oldPod, newPod, nil)
 		movingDuration := metrics.SinceInSeconds(startMoving)
 		metrics.EventHandlingLatency.WithLabelValues(evt.Label()).Observe(updatingDuration + movingDuration)
 	}
@@ -519,23 +503,6 @@ func addAllEventHandlers(
 			funcs.AddFunc = func(obj interface{}) {
 				start := time.Now()
 				defer metrics.EventHandlingLatency.WithLabelValues(evt.Label()).Observe(metrics.SinceInSeconds(start))
-				if resource == fwk.StorageClass && !utilfeature.DefaultFeatureGate.Enabled(features.SchedulerQueueingHints) {
-					sc, ok := obj.(*storagev1.StorageClass)
-					if !ok {
-						utilruntime.HandleErrorWithLogger(logger, nil, "Cannot convert to *storagev1.StorageClass", "obj", obj)
-						return
-					}
-
-					// CheckVolumeBindingPred fails if pod has unbound immediate PVCs. If these
-					// PVCs have specified StorageClass name, creating StorageClass objects
-					// with late binding will cause predicates to pass, so we need to move pods
-					// to active queue.
-					// We don't need to invalidate cached results because results will not be
-					// cached for pod that has unbound immediate PVCs.
-					if sc.VolumeBindingMode == nil || *sc.VolumeBindingMode != storagev1.VolumeBindingWaitForFirstConsumer {
-						return
-					}
-				}
 				sched.SchedulingQueue.MoveAllToActiveOrBackoffQueue(logger, evt, nil, obj, nil)
 			}
 		}
@@ -683,24 +650,8 @@ func addAllEventHandlers(
 }
 
 func preCheckForNode(nodeInfo *framework.NodeInfo) queue.PreEnqueueCheck {
-	if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerQueueingHints) {
-		// QHint is initially created from the motivation of replacing this preCheck.
-		// It assumes that the scheduler only has in-tree plugins, which is problematic for our extensibility.
-		// Here, we skip preCheck if QHint is enabled, and we eventually remove it after QHint is graduated.
-		return nil
-	}
-
-	// Note: the following checks doesn't take preemption into considerations, in very rare
-	// cases (e.g., node resizing), "pod" may still fail a check but preemption helps. We deliberately
-	// chose to ignore those cases as unschedulable pods will be re-queued eventually.
-	return func(pod *v1.Pod) bool {
-		admissionResults := AdmissionCheck(pod, nodeInfo, false)
-		if len(admissionResults) != 0 {
-			return false
-		}
-		_, isUntolerated := corev1helpers.FindMatchingUntoleratedTaint(nodeInfo.Node().Spec.Taints, pod.Spec.Tolerations, helper.DoNotScheduleTaintsFilterFunc())
-		return !isUntolerated
-	}
+	// QueueingHints replaced the old preCheck functionality.
+	return nil
 }
 
 // AdmissionCheck calls the filtering logic of noderesources/nodeport/nodeAffinity/nodename
